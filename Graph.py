@@ -34,38 +34,8 @@ class Graph(object):
     def value(self, node1: str, node2: str) -> float:
         "Returns the value of an edge between two nodes."
         val = self.graph[node1].get(node2, float("NaN"))
-        ic(node1, node2, val)
         if math.isnan(val):
             raise Exception(
                 f"Edge between {node1} and {node2} does not exist in the graph."
             )
         return val
-
-
-def gradient_descent_algorithm(graph, start_node):
-    shortest_path = []
-    current_node = ""
-    next_node = start_node
-
-    while next_node != current_node:
-        current_node = next_node
-        shortest_path.append(current_node)
-        cost = graph.value(current_node, current_node)
-        # ic(current_node, cost)
-
-        neighbors = graph.get_outgoing_edges(current_node)
-        ic(neighbors)
-
-        for neighbor in neighbors:
-            if neighbor == current_node:
-                continue
-
-            tentative_value = graph.value(current_node, neighbor)
-            # ic(neighbor, tentative_value)
-
-            if tentative_value < cost:
-                cost = tentative_value
-                next_node = neighbor
-                ic("Lower cost", cost)
-
-    return shortest_path

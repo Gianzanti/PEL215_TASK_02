@@ -5,26 +5,29 @@ INF = float("+inf")
 
 
 class MecanumRobot(ABC):
-    def __init__(self) -> None:
+    def __init__(self, initPos: tuple[float, float] = (0.0, 0.0)) -> None:
+        """
+        initPos: tuple[float, float] - defines initial position (x,y) for robot, defaults to (0.0, 0.0)
+        """
         self.me = Robot()
         self.timestep = int(self.me.getBasicTimeStep()) * 1
         maxVelocity = 14.81 / 2  # rad/s
         self.wheel_radius = 0.05  # m
         self.max_speed = maxVelocity * self.wheel_radius  # m/s
-        # self.speed_increment = self.max_speed
-        self.l = {"x": 0.228, "y": 0.158}
+        self.speed_increment = 0.5 * self.max_speed
+        self.l = {"x": 0.228, "y": 0.158}  # m
+        self.robot_radius = max(self.l["x"], self.l["y"]) * 2  # m
         self.v = {"x": 0.0, "y": 0.0}
-        self.p = {"x": 0.0, "y": 0.0}
+        self.p = {"x": initPos[0], "y": initPos[1]}
+        self.wheels = []
         self.steps = 0
         self.initMotors()
 
     def initMotors(self):
-        self.wheels = []
         for i in range(0, 4):
             self.wheels.append(self.me.getDevice(f"wheel{i+1}"))
 
-        speeds = [0, 0, 0, 0]
-        self.set_wheel_speeds(speeds)
+        self.set_wheel_speeds([0, 0, 0, 0])
 
     def set_wheel_speeds(self, speeds):
         for i in range(0, 4):
@@ -49,63 +52,62 @@ class MecanumRobot(ABC):
     def move_forward(self, speed):
         self.v["x"] += speed
         self.v["x"] = self.v["x"] if self.v["x"] < self.max_speed else self.max_speed
-        self.base_move()
 
     def move_forward_left(self, speed):
         self.v["x"] += speed
         self.v["x"] = self.v["x"] if self.v["x"] < self.max_speed else self.max_speed
         self.v["y"] += speed
         self.v["y"] = self.v["y"] if self.v["y"] < self.max_speed else self.max_speed
-        self.base_move()
 
     def move_forward_right(self, speed):
         self.v["x"] += speed
         self.v["x"] = self.v["x"] if self.v["x"] < self.max_speed else self.max_speed
         self.v["y"] -= speed
         self.v["y"] = self.v["y"] if self.v["y"] > -self.max_speed else -self.max_speed
-        self.base_move()
 
     def move_backward(self, speed):
         self.v["x"] -= speed
         self.v["x"] = self.v["x"] if self.v["x"] > -self.max_speed else -self.max_speed
-        self.base_move()
 
     def move_backward_left(self, speed):
         self.v["x"] -= speed
         self.v["x"] = self.v["x"] if self.v["x"] > -self.max_speed else -self.max_speed
         self.v["y"] += speed
         self.v["y"] = self.v["y"] if self.v["y"] < self.max_speed else self.max_speed
-        self.base_move()
 
     def move_backward_right(self, speed):
         self.v["x"] -= speed
         self.v["x"] = self.v["x"] if self.v["x"] > -self.max_speed else -self.max_speed
         self.v["y"] -= speed
         self.v["y"] = self.v["y"] if self.v["y"] > -self.max_speed else -self.max_speed
-        self.base_move()
 
     def stop(self):
         self.v["x"] = 0
         self.v["y"] = 0
-        self.v["w"] = 0
-        self.base_move()
 
     def move_left(self, speed):
         self.v["y"] += speed
         self.v["y"] = self.v["y"] if self.v["y"] < self.max_speed else self.max_speed
-        self.base_move()
 
     def move_right(self, speed):
         self.v["y"] -= speed
         self.v["y"] = self.v["y"] if self.v["y"] > -self.max_speed else -self.max_speed
-        self.base_move()
 
     @abstractmethod
     def update(self):
         pass
 
+    @abstractmethod
+    def move(self):
+        pass
+
+    @abstractmethod
+    def odometry(self):
+        pass
+
     def run(self):
         while self.me.step(self.timestep) != -1:
             self.update()
-            self.update_position()
+            self.move()
+            self.odometry()
             self.steps += 1

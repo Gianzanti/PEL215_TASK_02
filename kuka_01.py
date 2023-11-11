@@ -1,163 +1,110 @@
-from MecanumRobot import MecanumRobot
-import math
+from KukaPath import KukaPath
+from PotencialFields import PotencialFields
+from icecream import ic
 
 
-class KukaAPF(MecanumRobot):
-    def __init__(self):
-        super().__init__()
-        self.state = "decideMovement"
-        self.path = [
-            (0, 0),
-            (1, 1),
-            (2, 2),
-            (3, 3),
-            (3, 4),
-            (3, 5),
-            (4, 6),
-            (5, 6),
-            (6, 6),
-            (7, 6),
-            (8, 7),
-            (8, 8),
-        ]
+def gradient_descent_algorithm(cellsPF, start_node):
+    shortest_path = []
+    current_node = ""
+    next_node = start_node
 
-        self.currentTarget = 1
+    motion = [[1, 0], [0, 1], [-1, 0], [0, -1], [-1, -1], [-1, 1], [1, -1], [1, 1]]
 
-    def update(self):
-        # print(f"steps: {self.steps}")
-        # print(f"state: {self.state}")
-        match self.state:
-            case "checking":
-                checkPosX = abs(self.p["x"] - self.target["x"])
-                checkPosY = abs(self.p["y"] - self.target["y"])
-                # print(f'Position: X:{self.position["x"]}, Y:{self.position["y"]}')
-                # print(f'Target: X:{self.target["x"]}, Y:{self.target["y"]}')
-                # print(
-                #     f"posX: {checkPosX} [{checkPosX < 0.01}] - posY: {checkPosY} [{checkPosY < 0.01}]"
-                # )
+    while next_node != current_node:
+        current_node = next_node
+        shortest_path.append(current_node)
+        cost = cellsPF[current_node[0]][current_node[1]]
+        ic(current_node, cost)
 
-                if checkPosX < 0.01 and checkPosY < 0.01:
-                    self.stop()
-                    if (self.currentTarget + 1) < len(self.path):
-                        self.currentTarget += 1
-                        self.state = self.nextState
-                        print(f"Going to next step: {self.path[self.currentTarget]}")
-                    else:
-                        self.state = "stopped"
+        for move in motion:
+            neighbor = (current_node[0] + move[0], current_node[1] + move[1])
+            if neighbor == current_node:
+                continue
 
-            case "decideMovement":
-                if self.path[self.currentTarget][0] > math.ceil(
-                    self.p["x"]
-                ) and self.path[self.currentTarget][1] == math.ceil(self.p["y"]):
-                    self.state = "move_forward_1m"
-                elif self.path[self.currentTarget][0] > math.ceil(
-                    self.p["x"]
-                ) and self.path[self.currentTarget][1] > math.ceil(self.p["y"]):
-                    self.state = "forward_left_1m"
-                elif self.path[self.currentTarget][0] == math.ceil(
-                    self.p["x"]
-                ) and self.path[self.currentTarget][1] > math.ceil(self.p["y"]):
-                    self.state = "move_left_1m"
-                elif self.path[self.currentTarget][0] < math.ceil(
-                    self.p["x"]
-                ) and self.path[self.currentTarget][1] > math.ceil(self.p["y"]):
-                    self.state = "backward_left_1m"
-                elif self.path[self.currentTarget][0] < math.ceil(
-                    self.p["x"]
-                ) and self.path[self.currentTarget][1] == math.ceil(self.p["y"]):
-                    self.state = "move_backward_1m"
-                elif self.path[self.currentTarget][0] < math.ceil(
-                    self.p["x"]
-                ) and self.path[self.currentTarget][1] < math.ceil(self.p["y"]):
-                    self.state = "backward_right_1m"
-                elif self.path[self.currentTarget][0] == math.ceil(
-                    self.p["x"]
-                ) and self.path[self.currentTarget][1] < math.ceil(self.p["y"]):
-                    self.state = "move_right_1m"
-                elif self.path[self.currentTarget][0] > math.ceil(
-                    self.p["x"]
-                ) and self.path[self.currentTarget][1] < math.ceil(self.p["y"]):
-                    self.state = "forward_right_1m"
-                else:
-                    self.state = "stopped"
+            valX = cellsPF[neighbor[0] : neighbor[0] + 1]
+            if valX.size == 0:
+                continue
 
-                print(
-                    f'Current Position: {math.ceil(self.p["x"])}, {math.ceil(self.p["y"])}'
-                )
-                print(f"Next state: {self.state}")
+            valY = valX[0][neighbor[1] : neighbor[1] + 1]
+            if valY.size == 0:
+                continue
 
-            case "move_forward_1m":
-                self.move_forward(self.max_speed)
-                self.state = "checking"
-                self.target = {"x": self.p["x"] + 1.0, "y": self.p["y"]}
-                self.nextState = "decideMovement"
-                pass
+            # tentative_value = cellsPF[neighbor[0]][neighbor[1]]
+            tentative_value = valY[0]
+            ic(neighbor, tentative_value)
 
-            case "forward_left_1m":
-                self.move_forward_left(self.max_speed)
-                self.state = "checking"
-                self.target = {
-                    "x": self.p["x"] + 1.0,
-                    "y": self.p["y"] + 1.0,
-                }
-                self.nextState = "decideMovement"
-                pass
-
-            case "move_left_1m":
-                self.move_left(self.max_speed)
-                self.state = "checking"
-                self.target = {"x": self.p["x"], "y": self.p["y"] + 1.0}
-                self.nextState = "decideMovement"
-                pass
-
-            case "backward_left_1m":
-                self.move_backward_left(self.max_speed)
-                self.state = "checking"
-                self.target = {
-                    "x": self.p["x"] - 1.0,
-                    "y": self.p["y"] + 1.0,
-                }
-                self.nextState = "decideMovement"
-                pass
-
-            case "move_backward_1m":
-                self.move_backward(self.max_speed)
-                self.state = "checking"
-                self.target = {"x": self.p["x"] - 1.0, "y": self.p["y"]}
-                self.nextState = "decideMovement"
-                pass
-
-            case "backward_right_1m":
-                self.move_backward_right(self.max_speed)
-                self.state = "checking"
-                self.target = {
-                    "x": self.p["x"] - 1.0,
-                    "y": self.p["y"] - 1.0,
-                }
-                self.nextState = "decideMovement"
-                pass
-
-            case "move_right_1m":
-                self.move_right(self.max_speed)
-                self.state = "checking"
-                self.target = {"x": self.p["x"], "y": self.p["y"] - 1.0}
-                self.nextState = "decideMovement"
-                pass
-
-            case "forward_right_1m":
-                self.move_forward_right(self.max_speed)
-                self.state = "checking"
-                self.target = {
-                    "x": self.p["x"] + 1.0,
-                    "y": self.p["y"] - 1.0,
-                }
-                self.nextState = "decideMovement"
-                pass
-
-            case "stopped":
-                pass
+            if tentative_value < cost:
+                cost = tentative_value
+                next_node = neighbor
+                ic("Lower cost", cost)
+    return shortest_path
 
 
 if __name__ == "__main__":
-    kuka = KukaAPF()
-    kuka.run()
+    task = 2
+
+    if task == 1:
+        start_position = (1, 0)
+        path = [
+            (1, 0),
+            (2, 0),
+            (3, 1),
+            (3, 2),
+            (2, 3),
+            (1, 3),
+            (0, 2),
+            (0, 1),
+            (1, 0),
+        ]
+        kuka = KukaPath(start_position)
+        kuka.setPath(path)
+        kuka.run()
+
+    elif task == 2:
+        start_position = (0, 0)
+        kuka = KukaPath(start_position)
+
+        arenaDimensions = (10, 10)
+        goal = (8, 8)
+        obstacle_radius = 0.305  # m
+        robot_radius = kuka.robot_radius  # 0.456 m
+        # ic(robot_radius)
+        repulsion_radius = obstacle_radius + robot_radius  # m
+        obstacles = [
+            (0, 3, repulsion_radius),
+            (1, 6, repulsion_radius),
+            (2, 0, repulsion_radius),
+            (3.5, 1, repulsion_radius),
+            (4, 2, repulsion_radius),
+            (4, 3, repulsion_radius),
+            (4, 5, repulsion_radius),
+            (4, 7, repulsion_radius),
+            (5, 4, repulsion_radius),
+            (6, 2, repulsion_radius),
+            (6, 7, repulsion_radius),
+        ]
+        pf = PotencialFields(arenaDimensions, goal, obstacles)
+
+        Katt = 1
+        Krep = 50
+        cellsPF = pf.calculatePotencialField(Katt, Krep)
+        # ic(cellsPF)
+        pf.showPlot(cellsPF)
+
+        shortest_path = gradient_descent_algorithm(cellsPF, start_position)
+        ic(shortest_path)
+
+        # path = [
+        #     (1, 0),
+        #     (2, 0),
+        #     (3, 1),
+        #     (3, 2),
+        #     (2, 3),
+        #     (1, 3),
+        #     (0, 2),
+        #     (0, 1),
+        #     (1, 0),
+        # ]
+        kuka = KukaPath(start_position)
+        kuka.setPath(shortest_path)
+        kuka.run()

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from icecream import ic
 
-from Graph import Graph, dijkstra_algorithm, gradient_descent_algorithm, print_result
+from Graph import Graph
 
 
 class Arena:
@@ -62,6 +62,35 @@ class Arena:
                 )
 
         return self.U
+
+
+def gradient_descent_algorithm(graph, start_node):
+    shortest_path = []
+    current_node = ""
+    next_node = start_node
+
+    while next_node != current_node:
+        current_node = next_node
+        shortest_path.append(current_node)
+        cost = graph.value(current_node, current_node)
+        # ic(current_node, cost)
+
+        neighbors = graph.get_outgoing_edges(current_node)
+        ic(neighbors)
+
+        for neighbor in neighbors:
+            if neighbor == current_node:
+                continue
+
+            tentative_value = graph.value(current_node, neighbor)
+            # ic(neighbor, tentative_value)
+
+            if tentative_value < cost:
+                cost = tentative_value
+                next_node = neighbor
+                ic("Lower cost", cost)
+
+    return shortest_path
 
 
 if __name__ == "__main__":
